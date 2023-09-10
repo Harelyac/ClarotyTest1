@@ -34,22 +34,46 @@ export const OpenAIStream = async (
   if (OPENAI_API_TYPE === 'azure') {
     url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
   }
-  const res = await fetch(url, {
+
+  // Check if USE_APIM environment variable is set to true
+  const useAPIM = process.env.USE_APIM === 'true';
+
+  if (useAPIM) {
+    // Define your APIM endpoint and subscription key
+    const apimEndpoint = 'https://apim-claroty-ai-prod-westeu-001.azure-api.net';
+    const subscriptionKey = '8029c7e6386c4bf5a5040893f2e94bf5'; // Replace with your actual subscription key
+
+    // Add query parameter
+    const queryParams = `subscription-key=${subscriptionKey}`;
+
+    // Append the query parameter to the URL
+    url = `${apimEndpoint}?${queryParams}`;
+  }
+
+  const requestOptions = {
     headers: {
       'Content-Type': 'application/json',
       ...(OPENAI_API_TYPE === 'openai' && {
-        Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`
+        Authorization: `Bearer ${key ? key : process.env.OPENAI_API_KEY}`,
       }),
       ...(OPENAI_API_TYPE === 'azure' && {
-        'api-key': `${key ? key : process.env.OPENAI_API_KEY}`
+        'api-key': `${key ? key : process.env.OPENAI_API_KEY}`,
       }),
       ...((OPENAI_API_TYPE === 'openai' && OPENAI_ORGANIZATION) && {
         'OpenAI-Organization': OPENAI_ORGANIZATION,
       }),
+      // Add Ocp-Apim-Subscription-Key header if using APIM
+      ...(useAPIM && {
+        'Ocp-Apim-Subscription-Key': subscriptionKey,
+      }),
     },
     method: 'POST',
-    body: JSON.stringify({
-      ...(OPENAI_API_TYPE === 'openai' && {model: model.id}),
+  };
+
+  // Only add the body if not using APIM
+  if (!useAPIM) {
+    requestOptions.body = JSON.stringify({
+      ...(OPENAI_API_TYPE === 'openai' && { model: model.id }),
       messages: [
         {
           role: 'system',
@@ -60,8 +84,10 @@ export const OpenAIStream = async (
       max_tokens: 1000,
       temperature: temperature,
       stream: true,
-    }),
-  });
+    });
+  }
+  
+  const res = await fetch(url, requestOptions);
 
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
