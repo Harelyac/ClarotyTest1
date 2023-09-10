@@ -53,7 +53,17 @@ export const OpenAIStream = async (
     url = `${apimEndpoint}?${queryParams}`;
   }
 
-  const requestOptions = {
+  const requestOptions: {
+    headers: {
+      'Content-Type': string;
+      Authorization?: string;
+      'api-key'?: string;
+      'OpenAI-Organization'?: string;
+      'Ocp-Apim-Subscription-Key'?: string;
+    };
+    method: string;
+    body?: string; // Initialize it as undefined
+  } = {
     headers: {
       'Content-Type': 'application/json',
       ...(OPENAI_API_TYPE === 'openai' && {
