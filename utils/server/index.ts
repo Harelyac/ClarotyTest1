@@ -1,7 +1,7 @@
 import { Message } from '@/types/chat';
 import { OpenAIModel } from '@/types/openai';
 
-import { AZURE_DEPLOYMENT_ID, OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION } from '../app/const';
+import { AZURE_DEPLOYMENT_ID, OPENAI_API_HOST, OPENAI_API_TYPE, OPENAI_API_VERSION, OPENAI_ORGANIZATION, APIM_HOST } from '../app/const';
 
 import {
   ParsedEvent,
@@ -31,26 +31,17 @@ export const OpenAIStream = async (
   messages: Message[],
 ) => {
   let url = `${OPENAI_API_HOST}/v1/chat/completions`;
-  if (OPENAI_API_TYPE === 'azure') {
-    url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
-  }
 
   // Check if USE_APIM environment variable is set to true
-  const useAPIM = process.env.USE_APIM === 'true';
+  const useAPIM = USE_APIM === 'true';
 
-  // Declare the subscriptionKey variable here
-  let subscriptionKey: string | undefined;
+  if (OPENAI_API_TYPE === 'azure') {
+    if (useAPIM) {
+      url = `${APIM_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
 
-  if (useAPIM) {
-    // Define your APIM endpoint and subscription key
-    const apimEndpoint = 'https://apim-claroty-ai-prod-westeu-001.azure-api.net';
-    const subscriptionKey = '8029c7e6386c4bf5a5040893f2e94bf5'; // Replace with your actual subscription key
-
-    // Add query parameter
-    const queryParams = `subscription-key=${subscriptionKey}`;
-
-    // Append the query parameter to the URL
-    url = `${apimEndpoint}?${queryParams}`;
+    } else {
+      url = `${OPENAI_API_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
+    }
   }
 
   const requestOptions: {
@@ -77,28 +68,27 @@ export const OpenAIStream = async (
       }),
       // Add Ocp-Apim-Subscription-Key header if using APIM
       ...(useAPIM && {
-        'Ocp-Apim-Subscription-Key': subscriptionKey,
+        'Ocp-Apim-Subscription-Key': process.env.SUBSCRIPTION_KEY,
       }),
     },
     method: 'POST',
   };
 
   // Only add the body if not using APIM
-  if (!useAPIM) {
-    requestOptions.body = JSON.stringify({
-      ...(OPENAI_API_TYPE === 'openai' && { model: model.id }),
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt,
-        },
-        ...messages,
-      ],
-      max_tokens: 1000,
-      temperature: temperature,
-      stream: true,
-    });
-  }
+  requestOptions.body = JSON.stringify({
+    ...(OPENAI_API_TYPE === 'openai' && { model: model.id }),
+    ...(OPENAI_API_TYPE === 'azure' && { model: AZURE_DEPLOYMENT_ID }),
+    messages: [
+      {
+        role: 'system',
+        content: systemPrompt,
+      },
+      ...messages,
+    ],
+    max_tokens: 1000,
+    temperature: temperature,
+    stream: true,
+  });
   
   const res = await fetch(url, requestOptions);
 
