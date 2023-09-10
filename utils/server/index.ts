@@ -37,13 +37,14 @@ export const OpenAIStream = async (
 
   // Check if USE_APIM environment variable is set to true
   const useAPIM = process.env.USE_APIM === 'true';
-  const subscriptionKey = "";
-  const apimEndpoint = "";
+
+  // Declare the subscriptionKey variable here
+  let subscriptionKey: string | undefined;
 
   if (useAPIM) {
     // Define your APIM endpoint and subscription key
-    apimEndpoint = 'https://apim-claroty-ai-prod-westeu-001.azure-api.net';
-    subscriptionKey = '8029c7e6386c4bf5a5040893f2e94bf5'; // Replace with your actual subscription key
+    const apimEndpoint = 'https://apim-claroty-ai-prod-westeu-001.azure-api.net';
+    const subscriptionKey = '8029c7e6386c4bf5a5040893f2e94bf5'; // Replace with your actual subscription key
 
     // Add query parameter
     const queryParams = `subscription-key=${subscriptionKey}`;
