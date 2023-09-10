@@ -32,11 +32,8 @@ export const OpenAIStream = async (
 ) => {
   let url = `${OPENAI_API_HOST}/v1/chat/completions`;
 
-  // Check if USE_APIM environment variable is set to true
-  const useAPIM = USE_APIM === 'true';
-
   if (OPENAI_API_TYPE === 'azure') {
-    if (useAPIM) {
+    if (USE_APIM === 'true') {
       url = `${APIM_HOST}/openai/deployments/${AZURE_DEPLOYMENT_ID}/chat/completions?api-version=${OPENAI_API_VERSION}`;
 
     } else {
@@ -67,7 +64,7 @@ export const OpenAIStream = async (
         'OpenAI-Organization': OPENAI_ORGANIZATION,
       }),
       // Add Ocp-Apim-Subscription-Key header if using APIM
-      ...(useAPIM && {
+      ...(USE_APIM === 'true' && {
         'Ocp-Apim-Subscription-Key': process.env.SUBSCRIPTION_KEY,
       }),
     },

@@ -23,4 +23,8 @@ export const AZURE_DEPLOYMENT_ID =
 export const APIM_HOST =
   process.env.APIM_HOST || '';
 
+export const USE_APIM =
+  process.env.USE_APIM || '';
+
+
 
